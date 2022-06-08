@@ -1,6 +1,20 @@
+--в таблице даны транзакционные данные в разрезе:
+--device_id - условный номер устройства
+--invoice_date - дата оплаты
+--service - наименование подписки
+
+--Первая часть. Найдя для каждого устройства самую первую дату оплаты в разрезе сервиса, определяем когорту, к которой он относится.
+--Далее определяем размер когорты. 
+--Во второй части скрипта определяем для каждой когорты число оставшихся платящих устройств в каждом последующем месяце.
+--Соединяем первую и вторую части через left join, получаем таблицу  с наименованием сервиса, когорты, размером когорты, месяцем оплаты, количеством устройств в этом месяце,
+--отношением кол-ва в месяцк к исходному кол-ву в когорте,
+
+--Визуализация таблицы через Metabase прилагается
+
 create table db.Retention_new_total as ( 
 select *,  to_char(cohort,'Mon YY'), numb -1 as number from ( 
-select a.service, a.cohort, month, cohort_count , count_monthly , round(count_monthly /cohort_count, 2) as retention, row_number() over (partition by a.service, a.cohort order by month) as numb from
+select a.service, a.cohort, month, cohort_count , count_monthly , round(count_monthly /cohort_count, 2) as retention, 
+  row_number() over (partition by a.service, a.cohort order by month) as numb from
 (select service, cohort, count(distinct device_id) cohort_count from (
 select *, date_trunc('month',c) as cohort from ( 
 select *, min(invoice_date) over (partition by service, device_id order by invoice_date) as c
